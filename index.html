@@ -1,381 +1,354 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { 
-  Utensils, Calculator, Calendar, Plus, Trash2, 
-  TrendingDown, TrendingUp, Scale, Flame, Activity,
-  ChevronLeft, ChevronRight, Heart
-} from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-// --- Firebase 配置 ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'pastel-retro-tracker';
-
-const App = () => {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState({
-    gender: 'female',
-    age: 25,
-    weight: 55,
-    height: 160,
-    activity: 1.375
-  });
-  const [history, setHistory] = useState({});
-  const [weightLogs, setWeightLogs] = useState([]);
-  const [newItem, setNewItem] = useState({ name: '', calories: '' });
-  const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [viewDate, setViewDate] = useState(new Date());
-
-  // --- 初始化 Auth ---
-  useEffect(() => {
-    const initAuth = async () => {
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-        await signInAnonymously(auth);
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  // --- 監聽 Firestore 數據 ---
-  useEffect(() => {
-    if (!user) return;
-
-    const profileDoc = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-    const unsubProfile = onSnapshot(profileDoc, (docSnap) => {
-      if (docSnap.exists()) setProfile(docSnap.data());
-    });
-
-    const historyCol = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
-    const unsubHistory = onSnapshot(historyCol, (snapshot) => {
-      const data = {};
-      snapshot.forEach(doc => { data[doc.id] = doc.data(); });
-      setHistory(data);
-    });
-
-    const weightsCol = collection(db, 'artifacts', appId, 'users', user.uid, 'weights');
-    const unsubWeights = onSnapshot(weightsCol, (snapshot) => {
-      const logs = [];
-      snapshot.forEach(doc => { logs.push({ date: doc.id, weight: doc.data().weight }); });
-      setWeightLogs(logs.sort((a, b) => new Date(a.date) - new Date(b.date)));
-    });
-
-    return () => { unsubProfile(); unsubHistory(); unsubWeights(); };
-  }, [user]);
-
-  // --- 計算 TDEE 與 赤字 ---
-  const bmr = useMemo(() => {
-    const { gender, age, weight, height } = profile;
-    return gender === 'male' 
-      ? 10 * weight + 6.25 * height - 5 * age + 5 
-      : 10 * weight + 6.25 * height - 5 * age - 161;
-  }, [profile]);
-
-  const tdee = Math.round(bmr * profile.activity);
-  const deficitTarget = tdee - 500; 
-
-  const dailyData = history[currentDate] || { items: [], total: 0 };
-  const currentCals = dailyData.total || 0;
-  const remainingDeficit = deficitTarget - currentCals;
-
-  // --- 處理函式 ---
-  const updateProfile = async (field, value) => {
-    if (!user) return;
-    const newProfile = { ...profile, [field]: value };
-    setProfile(newProfile);
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile'), newProfile);
-  };
-
-  const addFood = async () => {
-    if (!user || !newItem.name || !newItem.calories) return;
-    const updatedItems = [...(dailyData.items || []), { ...newItem, id: Date.now() }];
-    const newTotal = updatedItems.reduce((sum, item) => sum + Number(item.calories), 0);
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'history', currentDate), {
-      items: updatedItems,
-      total: newTotal
-    });
-    setNewItem({ name: '', calories: '' });
-  };
-
-  const removeFood = async (id) => {
-    if (!user) return;
-    const updatedItems = dailyData.items.filter(item => item.id !== id);
-    const newTotal = updatedItems.reduce((sum, item) => sum + Number(item.calories), 0);
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'history', currentDate), {
-      items: updatedItems,
-      total: newTotal
-    });
-  };
-
-  const logWeight = async () => {
-    if (!user) return;
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'weights', currentDate), {
-      weight: profile.weight,
-      timestamp: new Date()
-    });
-  };
-
-  const getCalendarDays = () => {
-    const year = viewDate.getFullYear();
-    const month = viewDate.getMonth();
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    return [...Array(firstDay).fill(null), ...Array.from({length: daysInMonth}, (_, i) => new Date(year, month, i + 1))];
-  };
-
-  return (
-    <div className="min-h-screen bg-[#FFFDF3] p-4 md:p-8 font-sans text-[#5F4B8B]">
-      {/* Header */}
-      <header className="max-w-6xl mx-auto mb-10 text-center relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-8 w-80 h-32 bg-[#D1C4E9] rounded-full blur-3xl opacity-30 -z-10"></div>
-        <h1 className="text-5xl md:text-7xl font-black text-[#B197FC] italic tracking-tighter uppercase drop-shadow-[4px_4px_0px_#E5DBFF] mb-2">
-          Sweet Pastel Health
-        </h1>
-        <div className="inline-block bg-[#FFEB3B] border-2 border-[#5F4B8B] text-[#5F4B8B] px-8 py-1.5 rounded-full font-black text-xs tracking-[0.3em] uppercase shadow-[4px_4px_0px_#5F4B8B]">
-          Daily Body Log • 美式柔和復古
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* 左側面板 (4/12) - 個人資料與赤字 */}
-        <div className="lg:col-span-4 space-y-8">
-          <section className="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 shadow-[10px_10px_0px_#D1C4E9] relative overflow-hidden">
-             <div className="absolute -top-4 -right-4 text-[#E5DBFF] opacity-40 rotate-12"><Heart size={120} fill="currentColor"/></div>
-             
-             <h2 className="text-2xl font-black italic uppercase mb-6 flex items-center gap-2 relative z-10">
-               <Calculator className="text-[#B197FC]" /> 身材參數設定
-             </h2>
-             
-             <div className="space-y-4 relative z-10">
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="text-[10px] font-black uppercase mb-1 block opacity-50">GENDER</label>
-                   <select className="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold focus:ring-4 ring-[#FFEB3B]/30 outline-none" 
-                     value={profile.gender} onChange={e => updateProfile('gender', e.target.value)}>
-                     <option value="male">紳士 MALE</option>
-                     <option value="female">淑女 FEMALE</option>
-                   </select>
-                 </div>
-                 <div>
-                   <label className="text-[10px] font-black uppercase mb-1 block opacity-50">AGE</label>
-                   <input type="number" className="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold" 
-                     value={profile.age} onChange={e => updateProfile('age', Number(e.target.value))} />
-                 </div>
-               </div>
-
-               <div className="grid grid-cols-2 gap-4">
-                 <div>
-                   <label className="text-[10px] font-black uppercase mb-1 block opacity-50">HEIGHT (CM)</label>
-                   <input type="number" className="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold" 
-                     value={profile.height} onChange={e => updateProfile('height', Number(e.target.value))} />
-                 </div>
-                 <div>
-                   <label className="text-[10px] font-black uppercase mb-1 block opacity-50">WEIGHT (KG)</label>
-                   <input type="number" className="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold" 
-                     value={profile.weight} onChange={e => updateProfile('weight', Number(e.target.value))} />
-                 </div>
-               </div>
-
-               <button onClick={logWeight} className="w-full bg-[#B197FC] border-[3px] border-[#5F4B8B] text-white rounded-2xl py-3 font-black uppercase flex items-center justify-center gap-2 hover:bg-[#9775FA] transition-all shadow-[4px_4px_0px_#5F4B8B] active:translate-x-1 active:translate-y-1 active:shadow-none">
-                 <Scale size={20}/> 紀錄今日體重 LOG WEIGHT
-               </button>
-
-               <div className="mt-8 pt-6 border-t-2 border-[#5F4B8B] border-dashed">
-                 <div className="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-[30px] p-6 shadow-inner text-center">
-                   <div className="text-[10px] font-black uppercase text-[#5F4B8B] opacity-60 mb-1">減脂赤字目標 (TDEE-500)</div>
-                   <div className="text-4xl font-black">{deficitTarget} <span className="text-sm">KC</span></div>
-                 </div>
-                 <div className="mt-4 flex justify-between items-center px-2">
-                   <span className="text-xs font-black uppercase italic opacity-60">Your TDEE:</span>
-                   <span className="text-sm font-black">{tdee} KCAL</span>
-                 </div>
-               </div>
-             </div>
-          </section>
-
-          {/* 熱量狀態卡 */}
-          <section className="bg-[#B197FC] border-[5px] border-[#5F4B8B] rounded-[40px] p-8 shadow-[10px_10px_0px_#E5DBFF] text-white relative">
-             <div className="absolute top-4 right-6 animate-pulse opacity-50"><Flame size={24}/></div>
-             <h2 className="text-xl font-black uppercase italic mb-4">攝取狀態</h2>
-             <div className="flex justify-between items-end mb-3">
-               <div className="text-5xl font-black">{currentCals}</div>
-               <div className="text-right pb-1">
-                 <div className="text-[10px] font-bold uppercase opacity-80">距離目標</div>
-                 <div className="text-xl font-black">{remainingDeficit > 0 ? `+${remainingDeficit}` : remainingDeficit}</div>
-               </div>
-             </div>
-             <div className="h-6 bg-white/20 rounded-full border-2 border-white/50 overflow-hidden p-1">
-                <div 
-                  className="h-full bg-white rounded-full transition-all duration-1000"
-                  style={{ width: `${Math.min((currentCals / deficitTarget) * 100, 100)}%` }}
-                ></div>
-             </div>
-             <p className="mt-4 text-[10px] font-black text-center uppercase tracking-widest bg-black/10 py-1 rounded-full">
-               {currentCals > tdee ? "⚠️ 超標警告" : currentCals > deficitTarget ? "✨ 完美赤字區" : "🍭 尚有額度"}
-             </p>
-          </section>
-        </div>
-
-        {/* 中間面板 (4/12) - 飲食清單 */}
-        <section className="lg:col-span-4 bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 shadow-[10px_10px_0px_#D1C4E9] flex flex-col h-full relative">
-          <div className="absolute top-8 right-8 text-[#FFEB3B] opacity-20"><Utensils size={60}/></div>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-black italic uppercase flex items-center gap-3">
-              <span className="bg-[#B197FC] text-white p-2 rounded-xl"><Utensils size={24}/></span> MENU
-            </h2>
-            <div className="text-[10px] font-black uppercase opacity-40 text-right">
-              {currentDate.replace(/-/g, '.')}
-            </div>
-          </div>
-
-          <div className="space-y-4 mb-6">
-            <input type="text" placeholder="食物名稱..." className="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none ring-[#FFEB3B] focus:ring-4 placeholder-[#B197FC]/40" 
-              value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
-            <div className="flex gap-2">
-              <input type="number" placeholder="KCAL" className="flex-1 bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none" 
-                value={newItem.calories} onChange={e => setNewItem({...newItem, calories: e.target.value})} />
-              <button onClick={addFood} className="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-2xl px-6 font-black hover:scale-105 active:scale-95 transition-all shadow-[4px_4px_0px_#5F4B8B]">
-                <Plus strokeWidth={4} size={24}/>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 space-y-3 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
-            {dailyData.items?.length > 0 ? (
-              dailyData.items.map(item => (
-                <div key={item.id} className="bg-[#FAF9FF] border-2 border-[#5F4B8B] rounded-2xl p-4 flex justify-between items-center group transition-all hover:bg-[#E5DBFF]/30">
-                  <div>
-                    <div className="font-black text-[#5F4B8B] text-sm">{item.name}</div>
-                    <div className="text-[10px] font-black text-[#B197FC] tracking-tighter">{item.calories} KCAL</div>
-                  </div>
-                  <button onClick={() => removeFood(item.id)} className="text-[#5F4B8B]/30 hover:text-[#B197FC] p-2">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="h-40 flex flex-col items-center justify-center text-[#B197FC]/30">
-                <div className="bg-[#F3F0FF] p-4 rounded-full mb-2"><Activity size={30} /></div>
-                <span className="font-black uppercase text-[10px] tracking-widest">NO RECORDS YET</span>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* 右側面板 (4/12) - 日曆與趨勢 */}
-        <section className="lg:col-span-4 bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 shadow-[10px_10px_0px_#D1C4E9] flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-black italic uppercase flex items-center gap-2">
-              <Calendar className="text-[#B197FC]" /> HISTORY
-            </h2>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1))} className="p-1 hover:text-[#B197FC] transition-colors"><ChevronLeft size={20}/></button>
-              <span className="font-black text-xs uppercase tracking-tighter">{viewDate.toLocaleString('default', { month: 'short', year: 'numeric' })}</span>
-              <button onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1))} className="p-1 hover:text-[#B197FC] transition-colors"><ChevronRight size={20}/></button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-7 gap-1 mb-8">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-              <div key={d} className="text-center text-[9px] font-black opacity-30 pb-2">{d}</div>
-            ))}
-            {getCalendarDays().map((date, i) => {
-              if (!date) return <div key={i} className="aspect-square"></div>;
-              const ds = date.toISOString().split('T')[0];
-              const log = history[ds];
-              const isSelected = ds === currentDate;
-              const isToday = ds === new Date().toISOString().split('T')[0];
-              
-              return (
-                <button key={ds} onClick={() => setCurrentDate(ds)}
-                  className={`aspect-square rounded-xl border-2 border-transparent flex flex-col items-center justify-center transition-all relative
-                    ${isSelected ? 'bg-[#5F4B8B] text-white border-[#5F4B8B]' : 'hover:bg-[#F3F0FF]'}
-                    ${isToday && !isSelected ? 'border-[#B197FC]' : ''}`}>
-                  <span className="text-[10px] font-black">{date.getDate()}</span>
-                  {log && <div className={`w-1.5 h-1.5 rounded-full mt-1 ${log.total > deficitTarget ? 'bg-[#FFEB3B]' : 'bg-[#B197FC]'}`}></div>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-auto pt-6 border-t-4 border-[#5F4B8B] border-dotted">
-             <h3 className="text-sm font-black uppercase mb-4 flex items-center gap-2 italic">
-               <TrendingUp size={16} className="text-[#B197FC]"/> WEIGHT TREND
-             </h3>
-             <div className="h-44 w-full -ml-4">
-               <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={weightLogs}>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5DBFF" />
-                   <XAxis dataKey="date" hide />
-                   <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
-                   <Tooltip 
-                     contentStyle={{ borderRadius: '20px', border: '3px solid #5F4B8B', fontFamily: 'inherit', fontWeight: 'black', fontSize: '10px' }}
-                     labelFormatter={(val) => `DATE: ${val}`}
-                   />
-                   <Line 
-                    type="monotone" 
-                    dataKey="weight" 
-                    stroke="#B197FC" 
-                    strokeWidth={5} 
-                    dot={{ r: 4, strokeWidth: 2, fill: '#FFEB3B', stroke: '#5F4B8B' }} 
-                    activeDot={{ r: 6, stroke: '#5F4B8B', strokeWidth: 3 }}
-                   />
-                 </LineChart>
-               </ResponsiveContainer>
-             </div>
-          </div>
-        </section>
-
-      </div>
-
-      {/* Footer */}
-      <footer className="mt-16 mb-8 text-center">
-        <div className="inline-flex items-center gap-6 px-10 py-3 bg-[#E5DBFF]/30 rounded-full">
-          <div className="h-2 w-2 rounded-full bg-[#B197FC]"></div>
-          <div className="text-[10px] font-black uppercase tracking-[0.4em] text-[#5F4B8B]">Stay Healthy & Pastel</div>
-          <div className="h-2 w-2 rounded-full bg-[#FFEB3B]"></div>
-        </div>
-      </footer>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap');
-        
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Pastel Health - 復古體態追蹤器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <style>
         body {
-          font-family: 'Montserrat', sans-serif;
-          background-image: 
-            radial-gradient(#D1C4E9 0.5px, transparent 0.5px);
-          background-size: 30px 30px;
+            font-family: 'Montserrat', sans-serif;
+            background-color: #FFFDF3;
+            background-image: radial-gradient(#D1C4E9 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+            color: #5F4B8B;
         }
-
+        .retro-shadow {
+            box-shadow: 10px 10px 0px #D1C4E9;
+        }
+        .inner-shadow {
+            box-shadow: inset 4px 4px 10px rgba(0,0,0,0.05);
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+            width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #D1C4E9;
-          border-radius: 10px;
+            background: #D1C4E9;
+            border-radius: 10px;
+        }
+        .btn-active:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="max-w-6xl mx-auto mb-10 text-center relative">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-8 w-80 h-32 bg-[#D1C4E9] rounded-full blur-3xl opacity-30 -z-10"></div>
+        <h1 class="text-5xl md:text-7xl font-black text-[#B197FC] italic tracking-tighter uppercase drop-shadow-[4px_4px_0px_#E5DBFF] mb-2">
+            Sweet Pastel Health
+        </h1>
+        <div class="inline-block bg-[#FFEB3B] border-2 border-[#5F4B8B] text-[#5F4B8B] px-8 py-1.5 rounded-full font-black text-xs tracking-[0.3em] uppercase shadow-[4px_4px_0px_#5F4B8B]">
+            Daily Body Log • 復古柔和運動風
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- 左側：參數設定 -->
+        <div class="lg:col-span-4 space-y-8">
+            <section class="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow relative overflow-hidden">
+                <i data-lucide="heart" class="absolute -top-4 -right-4 text-[#E5DBFF] opacity-40 rotate-12 w-32 h-32 fill-current"></i>
+                
+                <h2 class="text-2xl font-black italic uppercase mb-6 flex items-center gap-2 relative z-10">
+                    <i data-lucide="calculator" class="text-[#B197FC]"></i> 身材參數
+                </h2>
+                
+                <div class="space-y-4 relative z-10">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase mb-1 opacity-50">性別 GENDER</label>
+                            <select id="gender" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
+                                <option value="female">FEMALE</option>
+                                <option value="male">MALE</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase mb-1 opacity-50">年齡 AGE</label>
+                            <input type="number" id="age" value="25" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase mb-1 opacity-50">身高 (CM)</label>
+                            <input type="number" id="height" value="160" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
+                        </div>
+                        <div class="flex flex-col">
+                            <label class="text-[10px] font-black uppercase mb-1 opacity-50">體重 (KG)</label>
+                            <input type="number" id="weight" value="55" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
+                        </div>
+                    </div>
+
+                    <button onclick="logWeight()" class="w-full bg-[#B197FC] border-[3px] border-[#5F4B8B] text-white rounded-2xl py-3 font-black uppercase flex items-center justify-center gap-2 hover:bg-[#9775FA] transition-all shadow-[4px_4px_0px_#5F4B8B] btn-active mt-2">
+                        <i data-lucide="scale"></i> 紀錄體重 LOG WEIGHT
+                    </button>
+
+                    <div class="mt-8 pt-6 border-t-2 border-[#5F4B8B] border-dashed text-center">
+                        <div class="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-[30px] p-6 inner-shadow">
+                            <div class="text-[10px] font-black uppercase opacity-60 mb-1">建議赤字目標 (TDEE-500)</div>
+                            <div class="text-4xl font-black"><span id="deficit-val">0</span> <span class="text-sm">KC</span></div>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center px-2">
+                            <span class="text-xs font-black uppercase italic opacity-60">Daily TDEE:</span>
+                            <span id="tdee-val" class="text-sm font-black">0 KCAL</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 狀態卡 -->
+            <section class="bg-[#B197FC] border-[5px] border-[#5F4B8B] rounded-[40px] p-8 shadow-[10px_10px_0px_#E5DBFF] text-white relative">
+                <i data-lucide="flame" class="absolute top-4 right-6 animate-bounce opacity-50"></i>
+                <h2 class="text-xl font-black uppercase italic mb-4">攝取狀態</h2>
+                <div class="flex justify-between items-end mb-3">
+                    <div id="current-cals" class="text-5xl font-black">0</div>
+                    <div class="text-right">
+                        <div class="text-[10px] font-bold uppercase opacity-80">距離目標</div>
+                        <div id="remaining-val" class="text-xl font-black">+0</div>
+                    </div>
+                </div>
+                <div class="h-6 bg-white/20 rounded-full border-2 border-white/50 overflow-hidden p-1">
+                    <div id="progress-bar" class="h-full bg-white rounded-full transition-all duration-1000 w-0"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 中間：飲食清單 -->
+        <section class="lg:col-span-4 bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow flex flex-col h-full relative">
+            <i data-lucide="utensils" class="absolute top-8 right-8 text-[#FFEB3B] opacity-20 w-16 h-16"></i>
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-black italic uppercase flex items-center gap-3">
+                    <span class="bg-[#B197FC] text-white p-2 rounded-xl"><i data-lucide="utensils"></i></span> MENU
+                </h2>
+                <div id="today-date" class="text-[10px] font-black uppercase opacity-40 text-right">2026.01.01</div>
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <input type="text" id="food-name" placeholder="食物..." class="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none placeholder-[#B197FC]/40">
+                <div class="flex gap-2">
+                    <input type="number" id="food-cals" placeholder="KCAL" class="flex-1 bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none">
+                    <button onclick="addFood()" class="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-2xl px-6 font-black hover:scale-105 btn-active transition-all shadow-[4px_4px_0px_#5F4B8B]">
+                        <i data-lucide="plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="food-list" class="flex-1 space-y-3 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+                <!-- 動態注入內容 -->
+            </div>
+        </section>
+
+        <!-- 右側：日曆與體重曲線 -->
+        <section class="lg:col-span-4 bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow flex flex-col">
+            <h2 class="text-2xl font-black italic uppercase mb-6 flex items-center gap-2">
+                <i data-lucide="trending-up" class="text-[#B197FC]"></i> WEIGHT TREND
+            </h2>
+            
+            <div class="flex-1 min-h-[250px] relative">
+                <canvas id="weightChart"></canvas>
+            </div>
+
+            <div class="mt-8 pt-6 border-t-4 border-[#5F4B8B] border-dotted">
+                <h3 class="text-xs font-black uppercase mb-4 opacity-50 italic">Quick Stats</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-[#F3F0FF] p-4 rounded-3xl border-2 border-[#5F4B8B]">
+                        <div class="text-[10px] font-black opacity-50 uppercase">Start</div>
+                        <div id="start-weight" class="text-lg font-black">-- kg</div>
+                    </div>
+                    <div class="bg-[#E5DBFF] p-4 rounded-3xl border-2 border-[#5F4B8B]">
+                        <div class="text-[10px] font-black opacity-50 uppercase">Latest</div>
+                        <div id="latest-weight" class="text-lg font-black">-- kg</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-16 mb-8 text-center">
+        <div class="inline-flex items-center gap-6 px-10 py-3 bg-[#E5DBFF]/30 rounded-full">
+            <div class="text-[10px] font-black uppercase tracking-[0.4em] text-[#5F4B8B]">Stay Healthy & Pastel • 2026</div>
+        </div>
+    </footer>
+
+    <script>
+        // 初始化 Lucide 圖示
+        lucide.createIcons();
+
+        // 狀態管理
+        let state = {
+            profile: { gender: 'female', age: 25, height: 160, weight: 55 },
+            foods: [],
+            weightHistory: [
+                { date: '12/28', weight: 57 },
+                { date: '12/30', weight: 56.2 },
+                { date: '01/01', weight: 55 }
+            ]
+        };
+
+        // Chart.js 實例
+        let weightChart;
+
+        function initChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            weightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: state.weightHistory.map(h => h.date),
+                    datasets: [{
+                        label: '體重趨勢',
+                        data: state.weightHistory.map(h => h.weight),
+                        borderColor: '#B197FC',
+                        borderWidth: 5,
+                        pointBackgroundColor: '#FFEB3B',
+                        pointBorderColor: '#5F4B8B',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { display: false, suggestMin: 40 },
+                        x: { grid: { display: false }, ticks: { font: { weight: 'bold' }, color: '#B197FC' } }
+                    }
+                }
+            });
         }
 
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
-        }
-      `}</style>
-    </div>
-  );
-};
+        function calculateTDEE() {
+            const { gender, age, height, weight } = state.profile;
+            let bmr = gender === 'male' 
+                ? (10 * weight + 6.25 * height - 5 * age + 5)
+                : (10 * weight + 6.25 * height - 5 * age - 161);
+            
+            const tdee = Math.round(bmr * 1.375);
+            const deficit = tdee - 500;
 
-export default App;
+            document.getElementById('tdee-val').innerText = `${tdee} KCAL`;
+            document.getElementById('deficit-val').innerText = deficit;
+
+            updateProgress(deficit);
+        }
+
+        function updateProgress(deficit) {
+            const totalCals = state.foods.reduce((sum, f) => sum + f.calories, 0);
+            document.getElementById('current-cals').innerText = totalCals;
+            
+            const remaining = deficit - totalCals;
+            document.getElementById('remaining-val').innerText = (remaining >= 0 ? '+' : '') + remaining;
+
+            const percent = Math.min((totalCals / deficit) * 100, 100);
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+        }
+
+        function addFood() {
+            const nameInput = document.getElementById('food-name');
+            const calInput = document.getElementById('food-cals');
+            
+            if (!nameInput.value || !calInput.value) return;
+
+            const food = {
+                id: Date.now(),
+                name: nameInput.value,
+                calories: parseInt(calInput.value)
+            };
+
+            state.foods.push(food);
+            renderFoods();
+            calculateTDEE();
+
+            nameInput.value = '';
+            calInput.value = '';
+        }
+
+        function removeFood(id) {
+            state.foods = state.foods.filter(f => f.id !== id);
+            renderFoods();
+            calculateTDEE();
+        }
+
+        function renderFoods() {
+            const list = document.getElementById('food-list');
+            if (state.foods.length === 0) {
+                list.innerHTML = `
+                    <div class="h-40 flex flex-col items-center justify-center text-[#B197FC]/30">
+                        <i data-lucide="activity" class="mb-2"></i>
+                        <span class="font-black uppercase text-[10px] tracking-widest">目前無數據</span>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            list.innerHTML = state.foods.map(f => `
+                <div class="bg-[#FAF9FF] border-2 border-[#5F4B8B] rounded-2xl p-4 flex justify-between items-center group transition-all hover:bg-[#E5DBFF]/30">
+                    <div>
+                        <div class="font-black text-[#5F4B8B] text-sm">${f.name}</div>
+                        <div class="text-[10px] font-black text-[#B197FC]">${f.calories} KCAL</div>
+                    </div>
+                    <button onclick="removeFood(${f.id})" class="text-[#5F4B8B]/30 hover:text-[#B197FC] p-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function logWeight() {
+            const w = parseFloat(document.getElementById('weight').value);
+            const date = new Date().toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' });
+            
+            state.profile.weight = w;
+            state.weightHistory.push({ date, weight: w });
+            
+            // 更新圖表
+            weightChart.data.labels = state.weightHistory.map(h => h.date);
+            weightChart.data.datasets[0].data = state.weightHistory.map(h => h.weight);
+            weightChart.update();
+
+            updateWeightStats();
+            calculateTDEE();
+        }
+
+        function updateWeightStats() {
+            if (state.weightHistory.length > 0) {
+                document.getElementById('start-weight').innerText = `${state.weightHistory[0].weight} kg`;
+                document.getElementById('latest-weight').innerText = `${state.weightHistory[state.weightHistory.length - 1].weight} kg`;
+            }
+        }
+
+        // 綁定輸入事件即時計算
+        ['gender', 'age', 'height', 'weight'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (e) => {
+                state.profile[id] = id === 'gender' ? e.target.value : parseFloat(e.target.value);
+                calculateTDEE();
+            });
+        });
+
+        // 初始化
+        window.onload = () => {
+            document.getElementById('today-date').innerText = new Date().toLocaleDateString('en-US').replace(/\//g, '.');
+            initChart();
+            updateWeightStats();
+            calculateTDEE();
+            renderFoods();
+        };
+    </script>
+</body>
+</html>
 
