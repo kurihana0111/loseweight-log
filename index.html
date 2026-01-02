@@ -3,458 +3,417 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sweet Pastel Health - 全功能復古追蹤器</title>
+    <title>Bubble Retro Fit v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka+One&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap" rel="stylesheet">
-    
     <style>
+        :root {
+            --hot-pink: #FF499E;
+            --electric-purple: #7971EA;
+            --sunny-yellow: #FFD93D;
+            --soft-cream: #FFF9DE;
+            --ink-black: #222222;
+        }
+
         body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: #FFFDF3;
-            background-image: radial-gradient(#D1C4E9 0.5px, transparent 0.5px);
-            background-size: 30px 30px;
-            color: #5F4B8B;
+            background-color: #A095EE;
+            font-family: 'Fredoka One', cursive;
+            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.2) 2px, transparent 0);
+            background-size: 32px 32px;
+            color: var(--ink-black);
+            padding-bottom: 50px;
         }
-        .retro-shadow { box-shadow: 10px 10px 0px #D1C4E9; }
-        .inner-shadow { box-shadow: inset 4px 4px 10px rgba(0,0,0,0.05); }
-        .btn-active:active { transform: translate(4px, 4px); box-shadow: none; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #D1C4E9; border-radius: 10px; }
-        
-        @keyframes popIn {
-            0% { transform: scale(0.8) translateY(20px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+
+        .bubble-card {
+            background: white;
+            border: 4px solid var(--ink-black);
+            box-shadow: 10px 10px 0px var(--ink-black);
+            border-radius: 40px;
+            transition: all 0.2s ease;
         }
-        .ai-reward-box { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        .bungee { font-family: 'Bungee', cursive; }
+
+        .btn-main {
+            border: 4px solid var(--ink-black);
+            border-radius: 9999px;
+            box-shadow: 6px 6px 0px var(--ink-black);
+            transition: all 0.1s;
+            font-weight: 900;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-main:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--ink-black);
+        }
+
+        .input-bubble {
+            border: 4px solid var(--ink-black);
+            border-radius: 25px;
+            padding: 12px 20px;
+            background: var(--soft-cream);
+            font-weight: bold;
+            outline: none;
+        }
+
+        .input-bubble:focus {
+            background: white;
+            border-color: var(--hot-pink);
+        }
+
+        #aiLoader {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--soft-cream);
+            border-top: 5px solid var(--hot-pink);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
+</head>
+<body class="p-4">
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <div id="aiLoader">
+        <div class="spinner"></div>
+        <p class="text-white mt-4 bungee">AI 正在為你加油...</p>
+    </div>
 
-        // --- Firebase 配置 ---
-        // 請在此填入你的 Firebase 專案資訊，否則 GitHub 部署後會無法操作
-        const manualConfig = {
-            apiKey: "你的_API_KEY",
-            authDomain: "你的_PROJECT_ID.firebaseapp.com",
-            projectId: "你的_PROJECT_ID",
-            storageBucket: "你的_PROJECT_ID.appspot.com",
-            messagingSenderId: "你的_ID",
-            appId: "你的_APP_ID"
-        };
+    <div class="max-w-5xl mx-auto">
+        <!-- Title -->
+        <header class="text-center py-10">
+            <h1 class="text-6xl md:text-8xl bungee text-white italic" style="-webkit-text-stroke: 3px var(--ink-black); text-shadow: 8px 8px 0px var(--hot-pink);">
+                RETRO-GO!
+            </h1>
+            <div class="mt-4 bg-[#FFD93D] inline-block px-8 py-2 border-4 border-black rounded-full rotate-2 shadow-lg font-black text-xl">
+                圓滑美式復古派對 🍩
+            </div>
+        </header>
 
-        let firebaseConfig;
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : manualConfig;
-        } catch (e) {
-            firebaseConfig = manualConfig;
-        }
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pastel-health-app';
-
-        let currentUser = null;
-        let weightChart = null;
-        let currentViewDate = new Date();
-        let selectedDate = new Date().toISOString().split('T')[0];
-        
-        window.state = {
-            profile: { gender: 'female', age: 25, height: 160, weight: 55 },
-            history: {},
-            weightLogs: []
-        };
-
-        // --- 驗證與監聽 ---
-        const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                document.getElementById('user-id-display').innerText = `SYNC ID: ${user.uid.substring(0, 8)}`;
-                setupListeners();
-            } else {
-                initAuth();
-            }
-        });
-
-        function setupListeners() {
-            if (!currentUser) return;
-
-            // 監聽個人資料
-            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'profile');
-            onSnapshot(profileRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    window.state.profile = docSnap.data();
-                    updateProfileUI();
-                    window.calculateTDEE();
-                }
-            });
-
-            // 監聽日誌紀錄
-            const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_history');
-            onSnapshot(historyRef, (snapshot) => {
-                snapshot.forEach(doc => { window.state.history[doc.id] = doc.data(); });
-                window.renderCalendar();
-                window.renderFoods();
-                window.calculateTDEE();
-            });
-
-            // 監聽體重紀錄
-            const weightRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'weights');
-            onSnapshot(weightRef, (snapshot) => {
-                const logs = [];
-                snapshot.forEach(doc => { logs.push({ date: doc.id, weight: doc.data().weight, fullDate: doc.data().fullDate }); });
-                window.state.weightLogs = logs.sort((a, b) => new Date(a.fullDate) - new Date(b.fullDate));
-                updateChart();
-            });
-        }
-
-        // --- 全域操作函數 ---
-        window.updateProfileInDB = async () => {
-            if (!currentUser) return;
-            const profile = {
-                gender: document.getElementById('gender').value,
-                age: parseInt(document.getElementById('age').value) || 25,
-                height: parseFloat(document.getElementById('height').value) || 160,
-                weight: parseFloat(document.getElementById('weight').value) || 55
-            };
-            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'settings', 'profile'), profile);
-        };
-
-        window.addFood = async () => {
-            if (!currentUser) return;
-            const name = document.getElementById('food-name').value;
-            const cals = parseInt(document.getElementById('food-cals').value);
-            if (!name || isNaN(cals)) return;
-
-            const currentDayData = window.state.history[selectedDate] || { foods: [] };
-            const newFoods = [...currentDayData.foods, { id: Date.now(), name, calories: cals }];
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_history', selectedDate), {
-                foods: newFoods
-            });
-
-            document.getElementById('food-name').value = '';
-            document.getElementById('food-cals').value = '';
-        };
-
-        window.removeFood = async (foodId) => {
-            if (!currentUser) return;
-            const currentDayData = window.state.history[selectedDate];
-            const newFoods = currentDayData.foods.filter(f => f.id !== foodId);
-            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'daily_history', selectedDate), {
-                foods: newFoods
-            });
-        };
-
-        window.logWeight = async () => {
-            if (!currentUser) return;
-            const w = parseFloat(document.getElementById('weight').value);
-            if (isNaN(w)) return;
-            
-            await setDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'weights', selectedDate), {
-                weight: w,
-                fullDate: selectedDate
-            });
-
-            await window.updateProfileInDB();
-            handleAIReward(w);
-        };
-
-        window.calculateTDEE = () => {
-            const { gender, age, height, weight } = window.state.profile;
-            const bmr = gender === 'male' 
-                ? (10 * weight + 6.25 * height - 5 * age + 5)
-                : (10 * weight + 6.25 * height - 5 * age - 161);
-            
-            const tdee = Math.round(bmr * 1.375);
-            const deficit = tdee - 500;
-            document.getElementById('deficit-val').innerText = deficit;
-
-            const dayData = window.state.history[selectedDate] || { foods: [] };
-            const consumed = dayData.foods.reduce((s, f) => s + f.calories, 0);
-            document.getElementById('current-cals').innerText = consumed;
-            document.getElementById('remaining-val').innerText = (deficit - consumed >= 0 ? '+' : '') + (deficit - consumed);
-            document.getElementById('progress-bar').style.width = `${Math.min((consumed/deficit)*100, 100)}%`;
-        };
-
-        window.renderFoods = () => {
-            const list = document.getElementById('food-list');
-            const dayData = window.state.history[selectedDate] || { foods: [] };
-            list.innerHTML = dayData.foods.map(f => `
-                <div class="bg-[#FAF9FF] border-2 border-[#5F4B8B] rounded-2xl p-4 flex justify-between items-center group">
-                    <div>
-                        <div class="font-black text-[#5F4B8B] text-sm">${f.name}</div>
-                        <div class="text-[10px] font-black text-[#B197FC]">${f.calories} KCAL</div>
+            <!-- TDEE Calculator -->
+            <div class="lg:col-span-5 bubble-card p-8 bg-[#FFD93D]">
+                <h2 class="text-3xl bungee mb-6">📏 計算 TDEE</h2>
+                <div class="flex flex-col gap-4">
+                    <div class="flex gap-2">
+                        <input type="number" id="h" placeholder="身高" class="input-bubble w-1/2">
+                        <input type="number" id="w" placeholder="體重" class="input-bubble w-1/2">
                     </div>
-                    <button onclick="removeFood(${f.id})" class="text-[#5F4B8B]/30 hover:text-[#B197FC] p-2">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                    <div class="flex gap-2">
+                        <input type="number" id="a" placeholder="年齡" class="input-bubble w-1/2">
+                        <select id="g" class="input-bubble w-1/2">
+                            <option value="male">帥哥</option>
+                            <option value="female">美女</option>
+                        </select>
+                    </div>
+                    <select id="act" class="input-bubble w-full">
+                        <option value="1.2">久坐不運動</option>
+                        <option value="1.375">輕量 (1-3天/週)</option>
+                        <option value="1.55">中量 (3-5天/週)</option>
+                        <option value="1.725">重量 (6-7天/週)</option>
+                    </select>
+                    <button onclick="doCalc()" class="btn-main py-4 bg-[#FF499E] text-white text-xl">開始計算！</button>
                 </div>
-            `).join('');
-            lucide.createIcons();
+                <div id="resBox" class="mt-8 hidden p-6 bg-white border-4 border-black rounded-[30px] text-center">
+                    <p class="font-black text-gray-400">DAILY TDEE</p>
+                    <h3 id="tVal" class="text-5xl font-black text-[#7971EA]">--</h3>
+                    <div class="mt-4 bg-[#FF499E] p-4 rounded-2xl text-white border-2 border-black">
+                        <p class="font-bold">減脂赤字目標 (-500)</p>
+                        <h4 id="dVal" class="text-3xl font-black">--</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diet Tracker -->
+            <div class="lg:col-span-7 bubble-card p-8 bg-white">
+                <h2 class="text-3xl bungee mb-6">🍔 飲食帳本</h2>
+                <div class="flex flex-col md:flex-row gap-2 mb-6">
+                    <input type="text" id="fName" placeholder="吃了什麼？" class="input-bubble flex-grow">
+                    <input type="number" id="fCal" placeholder="熱量" class="input-bubble md:w-28">
+                    <button onclick="addFood()" class="btn-main px-6 py-3 bg-[#7971EA] text-white">ADD</button>
+                </div>
+                <div id="foodList" class="space-y-2 max-h-60 overflow-y-auto pr-2 italic text-gray-400 text-center py-4">
+                    今天還沒吃東西唷...
+                </div>
+                <div class="mt-6 pt-6 border-t-4 border-dotted border-gray-200 flex justify-between items-end">
+                    <div>
+                        <p class="font-black text-gray-400 text-xs">TOTAL</p>
+                        <h3 id="totalDisplay" class="text-4xl font-black">0</h3>
+                    </div>
+                    <div id="statusBadge" class="px-4 py-2 rounded-full border-4 border-black font-black bg-gray-100 rotate-2">
+                        尚未設定目標
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weight Chart -->
+            <div class="lg:col-span-12 bubble-card p-8 bg-[#FFF9DE]">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                    <div>
+                        <h2 class="text-4xl bungee text-[#FF499E]">體重變化紀錄</h2>
+                        <p class="font-bold opacity-60">每減 2kg 就會出現獎勵星星！⭐</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="wInput" step="0.1" placeholder="輸入體重" class="input-bubble w-32">
+                        <button onclick="recordWeight()" class="btn-main px-8 py-3 bg-white">紀錄體重</button>
+                    </div>
+                </div>
+                <div id="aiBox" class="hidden mb-6 p-6 bg-white border-4 border-black rounded-[30px] items-center gap-4">
+                    <span class="text-4xl">🎁</span>
+                    <p id="aiMsg" class="text-xl font-black italic text-[#7971EA]"></p>
+                </div>
+                <div class="w-full h-80">
+                    <canvas id="wChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Calendar -->
+            <div class="lg:col-span-12 bubble-card p-8 bg-white">
+                <h2 class="text-3xl bungee mb-6 text-center italic">HISTORY CALENDAR</h2>
+                <div id="calGrid" class="grid grid-cols-7 gap-3 text-center">
+                    <!-- JS Injected -->
+                </div>
+                <div id="dayInfo" class="mt-6 p-6 border-4 border-dashed border-[#A095EE] rounded-[30px] hidden">
+                    <h4 id="infoDate" class="text-2xl font-black text-[#7971EA]"></h4>
+                    <p id="infoContent" class="mt-2 font-bold"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = "";
+        let appData = {
+            profile: JSON.parse(localStorage.getItem('ret_profile')) || { tdee: 0 },
+            logs: JSON.parse(localStorage.getItem('ret_logs')) || {},
+            weights: JSON.parse(localStorage.getItem('ret_weights')) || []
         };
 
-        window.renderCalendar = () => {
-            const grid = document.getElementById('calendar-grid');
-            const monthLabel = document.getElementById('calendar-month');
-            grid.innerHTML = '';
-            
-            const year = currentViewDate.getFullYear();
-            const month = currentViewDate.getMonth();
-            monthLabel.innerText = new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(currentViewDate).toUpperCase();
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) grid.innerHTML += '<div></div>';
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const isSelected = dateStr === selectedDate;
-                const hasData = window.state.history[dateStr];
-                
-                grid.innerHTML += `
-                    <button onclick="window.selectDate('${dateStr}')" class="aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${isSelected ? 'bg-[#5F4B8B] text-white' : 'hover:bg-[#F3F0FF]'}">
-                        <span class="text-[10px] font-bold">${d}</span>
-                        ${hasData ? '<div class="w-1 h-1 bg-[#FFEB3B] rounded-full mt-0.5"></div>' : ''}
-                    </button>
-                `;
-            }
-        };
-
-        window.selectDate = (date) => {
-            selectedDate = date;
-            document.getElementById('selected-date-label').innerText = date.replace(/-/g, '.');
-            window.renderCalendar();
-            window.renderFoods();
-            window.calculateTDEE();
-        };
-
-        window.changeMonth = (dir) => {
-            currentViewDate.setMonth(currentViewDate.getMonth() + dir);
-            window.renderCalendar();
-        };
-
-        function updateChart() {
-            if (!weightChart) return;
-            weightChart.data.labels = window.state.weightLogs.map(l => l.date.slice(5).replace('-', '/'));
-            weightChart.data.datasets[0].data = window.state.weightLogs.map(l => l.weight);
-            weightChart.update();
-        }
-
-        function updateProfileUI() {
-            document.getElementById('gender').value = window.state.profile.gender;
-            document.getElementById('age').value = window.state.profile.age;
-            document.getElementById('height').value = window.state.profile.height;
-            document.getElementById('weight').value = window.state.profile.weight;
-        }
-
-        async function handleAIReward(currentWeight) {
-            const logs = window.state.weightLogs;
-            const prevWeight = logs.length > 1 ? logs[logs.length - 2].weight : currentWeight;
-            const diff = (currentWeight - prevWeight).toFixed(1);
-
-            document.getElementById('log-btn').disabled = true;
-            document.getElementById('ai-loading').classList.remove('hidden');
-            
-            const apiKey = ""; 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: `體重紀錄：${diff > 0 ? '增加' + diff : '減少' + Math.abs(diff)} 公斤。` }] }],
-                        systemInstruction: { parts: [{ text: "你是一位1950年代美式復古健身教練，語氣熱情充滿活力。請給予一段40字內的中文鼓勵語。" }] }
-                    })
-                });
-                const result = await response.json();
-                document.getElementById('ai-message').innerText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                document.getElementById('ai-reward-container').classList.remove('hidden');
-            } catch (e) {
-                document.getElementById('ai-message').innerText = "你表現得太棒了，親愛的！繼續保持！";
-            } finally {
-                document.getElementById('ai-loading').classList.add('hidden');
-                document.getElementById('log-btn').disabled = false;
-            }
-        }
+        let myChart;
 
         window.onload = () => {
-            const ctx = document.getElementById('weightChart').getContext('2d');
-            const starPlugin = {
-                id: 'starPlugin',
-                afterDatasetsDraw(chart) {
-                    const { ctx, data } = chart;
-                    chart.getDatasetMeta(0).data.forEach((point, index) => {
-                        if (index === 0) return;
-                        if (data.datasets[0].data[index-1] - data.datasets[0].data[index] >= 2) {
-                            ctx.save();
-                            ctx.font = '20px Arial';
-                            ctx.fillText('⭐', point.x - 10, point.y - 15);
-                            ctx.restore();
-                        }
-                    });
-                }
-            };
-            weightChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: [], datasets: [{ data: [], borderColor: '#B197FC', borderWidth: 5, pointRadius: 6, pointBackgroundColor: '#5F4B8B', tension: 0.3, fill: false }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#E5DBFF' } }, x: { grid: { display: false } } } },
-                plugins: [starPlugin]
-            });
-            window.selectDate(selectedDate);
-            lucide.createIcons();
+            initChart();
+            renderCalendar();
+            refreshDietUI();
+            if(appData.profile.tdee) {
+                document.getElementById('resBox').classList.remove('hidden');
+                document.getElementById('tVal').innerText = appData.profile.tdee;
+                document.getElementById('dVal').innerText = appData.profile.tdee - 500;
+            }
         };
+
+        function doCalc() {
+            const h = parseFloat(document.getElementById('h').value);
+            const w = parseFloat(document.getElementById('w').value);
+            const a = parseFloat(document.getElementById('a').value);
+            if(!h || !w || !a) return alert("請輸入完整數據唷！");
+
+            let bmr = (10 * w) + (6.25 * h) - (5 * a);
+            bmr = (document.getElementById('g').value === 'male') ? bmr + 5 : bmr - 161;
+            const tdee = Math.round(bmr * parseFloat(document.getElementById('act').value));
+            
+            appData.profile = { tdee };
+            localStorage.setItem('ret_profile', JSON.stringify(appData.profile));
+            
+            document.getElementById('tVal').innerText = tdee;
+            document.getElementById('dVal').innerText = tdee - 500;
+            document.getElementById('resBox').classList.remove('hidden');
+            refreshDietUI();
+        }
+
+        function addFood() {
+            const name = document.getElementById('fName').value;
+            const cal = parseInt(document.getElementById('fCal').value);
+            if(!name || isNaN(cal)) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            if(!appData.logs[today]) appData.logs[today] = { foods: [] };
+            appData.logs[today].foods.push({ name, cal });
+            
+            save();
+            refreshDietUI();
+            document.getElementById('fName').value = '';
+            document.getElementById('fCal').value = '';
+        }
+
+        function refreshDietUI() {
+            const today = new Date().toISOString().split('T')[0];
+            const list = document.getElementById('foodList');
+            const log = appData.logs[today];
+            list.innerHTML = '';
+            let total = 0;
+
+            if(log && log.foods.length > 0) {
+                log.foods.forEach(f => {
+                    total += f.cal;
+                    const item = document.createElement('div');
+                    item.className = "flex justify-between items-center bg-[#FFF9DE] p-3 border-2 border-black rounded-2xl mb-2 font-black italic";
+                    item.innerHTML = `<span>${f.name}</span><span class="bg-black text-white px-3 py-1 rounded-full text-xs">${f.cal} kcal</span>`;
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = "今天還沒吃東西唷...";
+            }
+
+            document.getElementById('totalDisplay').innerText = total;
+            const badge = document.getElementById('statusBadge');
+            if(appData.profile.tdee) {
+                const target = appData.profile.tdee - 500;
+                if(total > appData.profile.tdee) {
+                    badge.innerText = "🚨 爆熱量了！";
+                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#FF499E] text-white rotate-2";
+                } else if (total >= target) {
+                    badge.innerText = "👌 維持中";
+                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#FFD93D] rotate-[-2deg]";
+                } else {
+                    badge.innerText = "💎 完美赤字";
+                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#BAFFB4] rotate-1";
+                }
+            }
+            renderCalendar();
+        }
+
+        async function recordWeight() {
+            const val = parseFloat(document.getElementById('wInput').value);
+            if(isNaN(val)) return alert("請輸入正確體重數字！");
+
+            const today = new Date().toISOString().split('T')[0];
+            const idx = appData.weights.findIndex(x => x.date === today);
+            
+            if(idx > -1) appData.weights[idx].weight = val;
+            else appData.weights.push({ date: today, weight: val });
+            
+            appData.weights.sort((a,b) => new Date(a.date) - new Date(b.date));
+            save();
+            updateChart();
+            document.getElementById('wInput').value = '';
+
+            // AI 
+            const loader = document.getElementById('aiLoader');
+            loader.style.display = 'flex';
+            try {
+                const prompt = `使用者體重紀錄為 ${val}kg。請用一句超級可愛、美式復古風、活潑圓滑的語氣鼓勵他。繁體中文，20字內。`;
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                const msg = data.candidates?.[0]?.content?.parts?.[0]?.text || "你是最棒的小甜心！加油！";
+                document.getElementById('aiBox').style.display = 'flex';
+                document.getElementById('aiMsg').innerText = msg;
+            } catch(e) {
+                document.getElementById('aiBox').style.display = 'flex';
+                document.getElementById('aiMsg').innerText = "太棒了！紀錄成功！你是閃亮之星！";
+            }
+            loader.style.display = 'none';
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('wChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: appData.weights.map(w => w.date),
+                    datasets: [{
+                        label: '體重',
+                        data: appData.weights.map(w => w.weight),
+                        borderColor: '#222',
+                        borderWidth: 6,
+                        pointRadius: 10,
+                        pointBackgroundColor: (ctx) => {
+                            const i = ctx.dataIndex;
+                            if(i === 0) return '#7971EA';
+                            const start = appData.weights[0].weight;
+                            const cur = appData.weights[i].weight;
+                            const prev = appData.weights[i-1] ? appData.weights[i-1].weight : start;
+                            if(start - cur >= 2 && Math.floor((start-cur)/2) > Math.floor((start-prev)/2)) return '#FFD93D';
+                            return '#FF499E';
+                        },
+                        pointStyle: (ctx) => {
+                            const i = ctx.dataIndex;
+                            if(i === 0) return 'circle';
+                            const start = appData.weights[0].weight;
+                            const cur = appData.weights[i].weight;
+                            const prev = appData.weights[i-1] ? appData.weights[i-1].weight : start;
+                            if(start - cur >= 2 && Math.floor((start-cur)/2) > Math.floor((start-prev)/2)) return 'star';
+                            return 'circle';
+                        },
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { display: false }, border: { width: 4, color: '#000' } },
+                        x: { grid: { display: false }, border: { width: 4, color: '#000' } }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            myChart.data.labels = appData.weights.map(w => w.date);
+            myChart.data.datasets[0].data = appData.weights.map(w => w.weight);
+            myChart.update();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calGrid');
+            grid.innerHTML = '';
+            const now = new Date();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+
+            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+
+            for(let i=1; i<=daysInMonth; i++) {
+                const day = document.createElement('div');
+                const dStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
+                const hasData = appData.logs[dStr];
+                day.innerText = i;
+                day.className = `h-12 flex items-center justify-center rounded-2xl border-2 border-black font-black cursor-pointer shadow-[4px_4px_0px_black] ${hasData ? 'bg-[#7971EA] text-white' : 'bg-white'}`;
+                day.onclick = () => {
+                    const info = document.getElementById('dayInfo');
+                    document.getElementById('infoDate').innerText = dStr;
+                    if(hasData) {
+                        const total = hasData.foods.reduce((a,b)=>a+b.cal, 0);
+                        document.getElementById('infoContent').innerHTML = hasData.foods.map(f => `🍬 ${f.name} (${f.cal}kcal)`).join('<br>') + `<br><br>總計: ${total} kcal`;
+                    } else {
+                        document.getElementById('infoContent').innerText = "這天沒有紀錄唷！";
+                    }
+                    info.classList.remove('hidden');
+                };
+                grid.appendChild(day);
+            }
+        }
+
+        function save() {
+            localStorage.setItem('ret_logs', JSON.stringify(appData.logs));
+            localStorage.setItem('ret_weights', JSON.stringify(appData.weights));
+        }
     </script>
-</head>
-<body class="min-h-screen p-4 md:p-8">
-
-    <!-- Header -->
-    <header class="max-w-6xl mx-auto mb-10 text-center relative">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-8 w-80 h-32 bg-[#D1C4E9] rounded-full blur-3xl opacity-30 -z-10"></div>
-        <h1 class="text-5xl md:text-7xl font-black text-[#B197FC] italic tracking-tighter uppercase drop-shadow-[4px_4px_0px_#E5DBFF] mb-2">
-            Sweet Pastel Health
-        </h1>
-        <div class="flex flex-col items-center gap-2">
-            <div class="inline-block bg-[#FFEB3B] border-2 border-[#5F4B8B] text-[#5F4B8B] px-8 py-1.5 rounded-full font-black text-xs tracking-[0.3em] uppercase shadow-[4px_4px_0px_#5F4B8B]">
-                Full Feature • 雲端同步全功能版
-            </div>
-            <span id="user-id-display" class="text-[9px] font-bold opacity-40">Syncing...</span>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        <!-- 左側：參數與 AI -->
-        <div class="lg:col-span-4 space-y-8">
-            <section class="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow relative overflow-hidden">
-                <i data-lucide="calculator" class="absolute -top-4 -right-4 text-[#E5DBFF] opacity-40 rotate-12 w-32 h-32"></i>
-                <h2 class="text-2xl font-black italic uppercase mb-6 flex items-center gap-2 relative z-10">身材參數</h2>
-                <div class="space-y-4 relative z-10">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="flex flex-col">
-                            <label class="text-[10px] font-black opacity-50 mb-1">GENDER</label>
-                            <select id="gender" onchange="window.updateProfileInDB()" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
-                                <option value="female">FEMALE</option>
-                                <option value="male">MALE</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col">
-                            <label class="text-[10px] font-black opacity-50 mb-1">AGE</label>
-                            <input type="number" id="age" onchange="window.updateProfileInDB()" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="flex flex-col">
-                            <label class="text-[10px] font-black opacity-50 mb-1">HEIGHT (CM)</label>
-                            <input type="number" id="height" onchange="window.updateProfileInDB()" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
-                        </div>
-                        <div class="flex flex-col">
-                            <label class="text-[10px] font-black opacity-50 mb-1">WEIGHT (KG)</label>
-                            <input type="number" id="weight" onchange="window.updateProfileInDB()" class="bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-2.5 font-bold outline-none">
-                        </div>
-                    </div>
-                    <button id="log-btn" onclick="window.logWeight()" class="w-full bg-[#B197FC] border-[3px] border-[#5F4B8B] text-white rounded-2xl py-3 font-black uppercase flex items-center justify-center gap-2 hover:bg-[#9775FA] transition-all shadow-[4px_4px_0px_#5F4B8B] btn-active mt-2">
-                        <i data-lucide="scale"></i> 紀錄體重 & AI 教練
-                    </button>
-                    <div id="ai-loading" class="hidden text-center text-xs font-black text-[#B197FC] animate-pulse">COACH IS THINKING...</div>
-                </div>
-
-                <div class="mt-8 pt-6 border-t-2 border-[#5F4B8B] border-dashed text-center">
-                    <div class="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-[30px] p-6 inner-shadow">
-                        <div class="text-[10px] font-black uppercase opacity-60 mb-1">建議赤字目標 (TDEE-500)</div>
-                        <div class="text-4xl font-black"><span id="deficit-val">0</span> <span class="text-sm">KC</span></div>
-                    </div>
-                </div>
-            </section>
-
-            <div id="ai-reward-container" class="hidden">
-                <div class="ai-reward-box bg-[#FFEB3B] border-[5px] border-[#5F4B8B] rounded-[30px] p-6 retro-shadow relative">
-                    <div class="absolute -top-3 -left-3 bg-[#B197FC] text-white p-2 rounded-lg rotate-[-10deg] border-2 border-[#5F4B8B] text-[10px] font-black">Coach Note</div>
-                    <p id="ai-message" class="text-sm font-black italic leading-relaxed text-[#5F4B8B]"></p>
-                </div>
-            </div>
-        </div>
-
-        <!-- 中間：飲食清單 -->
-        <div class="lg:col-span-4 space-y-8">
-            <section class="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow flex flex-col relative h-[500px]">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-2xl font-black italic uppercase flex items-center gap-3">
-                        <span class="bg-[#B197FC] text-white p-2 rounded-xl"><i data-lucide="utensils"></i></span> MENU
-                    </h2>
-                    <div id="selected-date-label" class="text-[10px] font-black uppercase opacity-40">DATE</div>
-                </div>
-                <div class="space-y-4 mb-6">
-                    <input type="text" id="food-name" placeholder="食物名稱..." class="w-full bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none">
-                    <div class="flex gap-2">
-                        <input type="number" id="food-cals" placeholder="熱量 KCAL" class="flex-1 bg-[#F3F0FF] border-2 border-[#5F4B8B] rounded-2xl p-3 font-bold text-sm outline-none">
-                        <button onclick="window.addFood()" class="bg-[#FFEB3B] border-[3px] border-[#5F4B8B] rounded-2xl px-6 font-black hover:scale-105 btn-active shadow-[4px_4px_0px_#5F4B8B]">
-                            <i data-lucide="plus"></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="food-list" class="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar"></div>
-            </section>
-
-            <section class="bg-[#B197FC] border-[5px] border-[#5F4B8B] rounded-[40px] p-8 shadow-[10px_10px_0px_#E5DBFF] text-white">
-                <h2 class="text-xl font-black uppercase italic mb-4">今日熱量狀態</h2>
-                <div class="flex justify-between items-end mb-3">
-                    <div id="current-cals" class="text-5xl font-black">0</div>
-                    <div class="text-right">
-                        <div class="text-[10px] font-bold uppercase opacity-80">距離目標</div>
-                        <div id="remaining-val" class="text-xl font-black">+0</div>
-                    </div>
-                </div>
-                <div class="h-6 bg-white/20 rounded-full border-2 border-white/50 overflow-hidden p-1">
-                    <div id="progress-bar" class="h-full bg-white rounded-full transition-all duration-1000 w-0"></div>
-                </div>
-            </section>
-        </div>
-
-        <!-- 右側：日曆與趨勢 -->
-        <div class="lg:col-span-4 space-y-8">
-            <section class="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-black italic uppercase">CALENDAR</h2>
-                    <div class="flex gap-2">
-                        <button onclick="window.changeMonth(-1)" class="p-1 hover:text-[#B197FC]"><i data-lucide="chevron-left"></i></button>
-                        <span id="calendar-month" class="text-xs font-black uppercase">MONTH</span>
-                        <button onclick="window.changeMonth(1)" class="p-1 hover:text-[#B197FC]"><i data-lucide="chevron-right"></i></button>
-                    </div>
-                </div>
-                <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
-            </section>
-
-            <section class="bg-white border-[5px] border-[#5F4B8B] rounded-[50px] p-8 retro-shadow flex flex-col h-[350px]">
-                <h2 class="text-xl font-black italic uppercase mb-4 flex items-center gap-2">
-                    <i data-lucide="trending-up" class="text-[#B197FC]"></i> TREND
-                </h2>
-                <div class="flex-1 relative">
-                    <canvas id="weightChart"></canvas>
-                </div>
-            </section>
-        </div>
-
-    </main>
-
-    <footer class="mt-16 mb-8 text-center">
-        <div class="inline-flex items-center gap-6 px-10 py-3 bg-[#E5DBFF]/30 rounded-full">
-            <div class="text-[10px] font-black uppercase tracking-[0.4em] text-[#5F4B8B]">Data Sync Powered by Firestore • 2026</div>
-        </div>
-    </footer>
 </body>
 </html>
 
