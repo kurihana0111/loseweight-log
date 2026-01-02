@@ -3,361 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bubble Retro Fit v2</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka+One&display=swap" rel="stylesheet">
+    <title>Super Retro Fit v3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --hot-pink: #FF499E;
-            --electric-purple: #7971EA;
+            --soft-purple: #D4ADFC;
+            --neon-purple: #7971EA;
             --sunny-yellow: #FFD93D;
-            --soft-cream: #FFF9DE;
-            --ink-black: #222222;
+            --bg-cream: #FFF9DE;
+            --black: #222222;
         }
 
         body {
-            background-color: #A095EE;
-            font-family: 'Fredoka One', cursive;
-            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.2) 2px, transparent 0);
-            background-size: 32px 32px;
-            color: var(--ink-black);
-            padding-bottom: 50px;
-        }
-
-        .bubble-card {
-            background: white;
-            border: 4px solid var(--ink-black);
-            box-shadow: 10px 10px 0px var(--ink-black);
-            border-radius: 40px;
-            transition: all 0.2s ease;
+            background-color: var(--soft-purple);
+            font-family: 'Fredoka', sans-serif;
+            background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.1) 2px, transparent 0);
+            background-size: 24px 24px;
+            color: var(--black);
+            padding: 20px;
         }
 
         .bungee { font-family: 'Bungee', cursive; }
 
-        .btn-main {
-            border: 4px solid var(--ink-black);
-            border-radius: 9999px;
-            box-shadow: 6px 6px 0px var(--ink-black);
+        .retro-card {
+            background: white;
+            border: 5px solid var(--black);
+            box-shadow: 12px 12px 0px var(--black);
+            border-radius: 50px; /* 超大圓角 */
+            overflow: hidden;
+        }
+
+        .btn-retro {
+            border: 4px solid var(--black);
+            border-radius: 999px;
+            box-shadow: 6px 6px 0px var(--black);
+            font-weight: 800;
+            text-transform: uppercase;
             transition: all 0.1s;
-            font-weight: 900;
             cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            padding: 12px 24px;
+            display: inline-block;
         }
 
-        .btn-main:active {
+        .btn-retro:active {
             transform: translate(4px, 4px);
-            box-shadow: 0px 0px 0px var(--ink-black);
+            box-shadow: 0px 0px 0px var(--black);
         }
 
-        .input-bubble {
-            border: 4px solid var(--ink-black);
-            border-radius: 25px;
-            padding: 12px 20px;
-            background: var(--soft-cream);
+        .input-retro {
+            border: 4px solid var(--black);
+            border-radius: 30px;
+            padding: 15px 25px;
+            background: var(--bg-cream);
             font-weight: bold;
             outline: none;
+            width: 100%;
         }
 
-        .input-bubble:focus {
+        .input-retro:focus {
             background: white;
             border-color: var(--hot-pink);
         }
 
-        #aiLoader {
+        #aiToast {
             display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 100;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            animation: slideDown 0.5s forwards;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid var(--soft-cream);
-            border-top: 5px solid var(--hot-pink);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        @keyframes slideDown {
+            from { top: -100px; }
+            to { top: 20px; }
         }
 
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .scroll-hide::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="p-4">
+<body class="min-h-screen">
 
-    <div id="aiLoader">
-        <div class="spinner"></div>
-        <p class="text-white mt-4 bungee">AI 正在為你加油...</p>
-    </div>
-
-    <div class="max-w-5xl mx-auto">
-        <!-- Title -->
-        <header class="text-center py-10">
-            <h1 class="text-6xl md:text-8xl bungee text-white italic" style="-webkit-text-stroke: 3px var(--ink-black); text-shadow: 8px 8px 0px var(--hot-pink);">
-                RETRO-GO!
-            </h1>
-            <div class="mt-4 bg-[#FFD93D] inline-block px-8 py-2 border-4 border-black rounded-full rotate-2 shadow-lg font-black text-xl">
-                圓滑美式復古派對 🍩
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- TDEE Calculator -->
-            <div class="lg:col-span-5 bubble-card p-8 bg-[#FFD93D]">
-                <h2 class="text-3xl bungee mb-6">📏 計算 TDEE</h2>
-                <div class="flex flex-col gap-4">
-                    <div class="flex gap-2">
-                        <input type="number" id="h" placeholder="身高" class="input-bubble w-1/2">
-                        <input type="number" id="w" placeholder="體重" class="input-bubble w-1/2">
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="a" placeholder="年齡" class="input-bubble w-1/2">
-                        <select id="g" class="input-bubble w-1/2">
-                            <option value="male">帥哥</option>
-                            <option value="female">美女</option>
-                        </select>
-                    </div>
-                    <select id="act" class="input-bubble w-full">
-                        <option value="1.2">久坐不運動</option>
-                        <option value="1.375">輕量 (1-3天/週)</option>
-                        <option value="1.55">中量 (3-5天/週)</option>
-                        <option value="1.725">重量 (6-7天/週)</option>
-                    </select>
-                    <button onclick="doCalc()" class="btn-main py-4 bg-[#FF499E] text-white text-xl">開始計算！</button>
-                </div>
-                <div id="resBox" class="mt-8 hidden p-6 bg-white border-4 border-black rounded-[30px] text-center">
-                    <p class="font-black text-gray-400">DAILY TDEE</p>
-                    <h3 id="tVal" class="text-5xl font-black text-[#7971EA]">--</h3>
-                    <div class="mt-4 bg-[#FF499E] p-4 rounded-2xl text-white border-2 border-black">
-                        <p class="font-bold">減脂赤字目標 (-500)</p>
-                        <h4 id="dVal" class="text-3xl font-black">--</h4>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Diet Tracker -->
-            <div class="lg:col-span-7 bubble-card p-8 bg-white">
-                <h2 class="text-3xl bungee mb-6">🍔 飲食帳本</h2>
-                <div class="flex flex-col md:flex-row gap-2 mb-6">
-                    <input type="text" id="fName" placeholder="吃了什麼？" class="input-bubble flex-grow">
-                    <input type="number" id="fCal" placeholder="熱量" class="input-bubble md:w-28">
-                    <button onclick="addFood()" class="btn-main px-6 py-3 bg-[#7971EA] text-white">ADD</button>
-                </div>
-                <div id="foodList" class="space-y-2 max-h-60 overflow-y-auto pr-2 italic text-gray-400 text-center py-4">
-                    今天還沒吃東西唷...
-                </div>
-                <div class="mt-6 pt-6 border-t-4 border-dotted border-gray-200 flex justify-between items-end">
-                    <div>
-                        <p class="font-black text-gray-400 text-xs">TOTAL</p>
-                        <h3 id="totalDisplay" class="text-4xl font-black">0</h3>
-                    </div>
-                    <div id="statusBadge" class="px-4 py-2 rounded-full border-4 border-black font-black bg-gray-100 rotate-2">
-                        尚未設定目標
-                    </div>
-                </div>
-            </div>
-
-            <!-- Weight Chart -->
-            <div class="lg:col-span-12 bubble-card p-8 bg-[#FFF9DE]">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                    <div>
-                        <h2 class="text-4xl bungee text-[#FF499E]">體重變化紀錄</h2>
-                        <p class="font-bold opacity-60">每減 2kg 就會出現獎勵星星！⭐</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <input type="number" id="wInput" step="0.1" placeholder="輸入體重" class="input-bubble w-32">
-                        <button onclick="recordWeight()" class="btn-main px-8 py-3 bg-white">紀錄體重</button>
-                    </div>
-                </div>
-                <div id="aiBox" class="hidden mb-6 p-6 bg-white border-4 border-black rounded-[30px] items-center gap-4">
-                    <span class="text-4xl">🎁</span>
-                    <p id="aiMsg" class="text-xl font-black italic text-[#7971EA]"></p>
-                </div>
-                <div class="w-full h-80">
-                    <canvas id="wChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Calendar -->
-            <div class="lg:col-span-12 bubble-card p-8 bg-white">
-                <h2 class="text-3xl bungee mb-6 text-center italic">HISTORY CALENDAR</h2>
-                <div id="calGrid" class="grid grid-cols-7 gap-3 text-center">
-                    <!-- JS Injected -->
-                </div>
-                <div id="dayInfo" class="mt-6 p-6 border-4 border-dashed border-[#A095EE] rounded-[30px] hidden">
-                    <h4 id="infoDate" class="text-2xl font-black text-[#7971EA]"></h4>
-                    <p id="infoContent" class="mt-2 font-bold"></p>
-                </div>
-            </div>
+    <!-- AI 獎勵訊息彈窗 -->
+    <div id="aiToast" class="retro-card p-4 bg-white min-w-[300px] flex items-center gap-4">
+        <span class="text-4xl">✨</span>
+        <div>
+            <p class="text-xs font-black text-pink-500 bungee">AI PRAISE</p>
+            <p id="aiMsg" class="font-bold text-lg italic"></p>
         </div>
     </div>
 
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center py-8">
+            <h1 class="text-6xl md:text-8xl bungee text-white italic" style="-webkit-text-stroke: 4px var(--black); text-shadow: 10px 10px 0px var(--hot-pink);">
+                FIT-POP!
+            </h1>
+            <p class="mt-4 bg-[#FFD93D] inline-block px-10 py-3 border-4 border-black rounded-full font-black text-xl shadow-lg rotate-1">
+                你的甜美健身日記 🍭
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            
+            <!-- TDEE 計算器 -->
+            <section class="retro-card p-8 bg-[#FFD93D]">
+                <h2 class="text-3xl bungee mb-6">📏 身體密碼</h2>
+                <div class="space-y-4">
+                    <input type="number" id="calc_h" placeholder="身高 (cm)" class="input-retro">
+                    <input type="number" id="calc_w" placeholder="目前體重 (kg)" class="input-retro">
+                    <input type="number" id="calc_a" placeholder="年齡" class="input-retro">
+                    <select id="calc_g" class="input-retro">
+                        <option value="male">帥哥先生</option>
+                        <option value="female">美女小姐</option>
+                    </select>
+                    <select id="calc_act" class="input-retro">
+                        <option value="1.2">久坐不運動</option>
+                        <option value="1.375">輕量運動 (1-3天)</option>
+                        <option value="1.55">中量運動 (3-5天)</option>
+                        <option value="1.725">重量運動 (6-7天)</option>
+                    </select>
+                    <button id="btn_calc" class="btn-retro w-full bg-white text-xl">計算我的 TDEE！</button>
+                </div>
+
+                <div id="tdee_res" class="mt-8 hidden p-6 bg-white border-4 border-black rounded-[40px] text-center animate-bounce-short">
+                    <p class="font-black text-gray-400 text-xs bungee">DAILY CALORIES</p>
+                    <h3 id="val_tdee" class="text-5xl font-black text-[#7971EA]">0</h3>
+                    <div class="mt-4 bg-[#FF499E] p-4 rounded-[30px] text-white border-2 border-black">
+                        <p class="font-bold">✨ 減脂赤字 (-500) ✨</p>
+                        <h4 id="val_deficit" class="text-4xl font-black">0</h4>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 飲食紀錄器 -->
+            <section class="retro-card p-8 bg-white">
+                <h2 class="text-3xl bungee mb-6">🍔 貪吃紀錄</h2>
+                <div class="space-y-4 mb-6">
+                    <input type="text" id="food_name" placeholder="吃了什麼？" class="input-retro">
+                    <div class="flex gap-4">
+                        <input type="number" id="food_cal" placeholder="熱量 (kcal)" class="input-retro">
+                        <button id="btn_add_food" class="btn-retro bg-[#7971EA] text-white">ADD</button>
+                    </div>
+                </div>
+
+                <div id="food_list" class="max-h-60 overflow-y-auto scroll-hide space-y-3 py-4">
+                    <p class="text-center text-gray-400 italic">今天想吃點什麼呢？</p>
+                </div>
+
+                <div class="mt-6 pt-6 border-t-8 border-dotted border-pink-100 flex justify-between items-end">
+                    <div>
+                        <p class="font-black text-gray-400 text-xs">TOTAL</p>
+                        <h3 id="total_cal" class="text-5xl font-black">0</h3>
+                    </div>
+                    <div id="status_tag" class="px-6 py-2 rounded-full border-4 border-black font-black bg-gray-100 rotate-3 text-sm">
+                        尚未設定目標
+                    </div>
+                </div>
+            </section>
+
+            <!-- 體重曲線圖 -->
+            <section class="retro-card p-8 bg-[#FFF9DE] md:col-span-2">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+                    <div>
+                        <h2 class="text-4xl bungee text-[#FF499E]">體重變化紀錄</h2>
+                        <p class="font-bold opacity-60 italic">每瘦 2 公斤就有星星驚喜唷！⭐</p>
+                    </div>
+                    <div class="flex gap-3 bg-white p-4 border-4 border-black rounded-full shadow-md">
+                        <input type="number" id="weight_input" step="0.1" placeholder="今日體重" class="outline-none font-black text-xl w-32 px-4 text-center">
+                        <button id="btn_save_weight" class="btn-retro bg-[#FFD93D] py-2">紀錄</button>
+                    </div>
+                </div>
+                <div class="w-full h-80 md:h-96">
+                    <canvas id="weight_chart"></canvas>
+                </div>
+            </section>
+
+            <!-- 歷史日曆 -->
+            <section class="retro-card p-8 bg-white md:col-span-2">
+                <h2 class="text-3xl bungee mb-6 text-center">HISTORY</h2>
+                <div id="calendar" class="grid grid-cols-7 gap-4">
+                    <!-- JS 生成 -->
+                </div>
+                <div id="day_detail" class="mt-8 p-6 border-4 border-dashed border-[#FF499E] rounded-[40px] hidden bg-pink-50">
+                    <h4 id="detail_date" class="text-2xl font-black text-[#FF499E] mb-2"></h4>
+                    <p id="detail_info" class="font-bold text-lg"></p>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center py-10 bungee text-white text-xs opacity-60">
+            &copy; 2024 RETRO FIT CLUB. STAY RADIANT!
+        </footer>
+    </div>
+
     <script>
-        const apiKey = "";
-        let appData = {
-            profile: JSON.parse(localStorage.getItem('ret_profile')) || { tdee: 0 },
-            logs: JSON.parse(localStorage.getItem('ret_logs')) || {},
-            weights: JSON.parse(localStorage.getItem('ret_weights')) || []
+        // 初始化數據
+        let state = {
+            profile: JSON.parse(localStorage.getItem('fpop_profile')) || { tdee: 0 },
+            logs: JSON.parse(localStorage.getItem('fpop_logs')) || {},
+            weights: JSON.parse(localStorage.getItem('fpop_weights')) || []
         };
 
-        let myChart;
+        const apiKey = "";
+        let chartInstance = null;
 
-        window.onload = () => {
+        // 綁定事件
+        document.addEventListener('DOMContentLoaded', () => {
             initChart();
             renderCalendar();
-            refreshDietUI();
-            if(appData.profile.tdee) {
-                document.getElementById('resBox').classList.remove('hidden');
-                document.getElementById('tVal').innerText = appData.profile.tdee;
-                document.getElementById('dVal').innerText = appData.profile.tdee - 500;
+            updateDietUI();
+            
+            if(state.profile.tdee) {
+                showTDEEResults(state.profile.tdee);
             }
-        };
 
-        function doCalc() {
-            const h = parseFloat(document.getElementById('h').value);
-            const w = parseFloat(document.getElementById('w').value);
-            const a = parseFloat(document.getElementById('a').value);
-            if(!h || !w || !a) return alert("請輸入完整數據唷！");
+            // 核心功能：體重輸入按鈕
+            document.getElementById('btn_save_weight').addEventListener('click', saveWeight);
+            // 核心功能：計算 TDEE 按鈕
+            document.getElementById('btn_calc').addEventListener('click', calculateTDEE);
+            // 核心功能：新增食物按鈕
+            document.getElementById('btn_add_food').addEventListener('click', addFood);
+        });
 
-            let bmr = (10 * w) + (6.25 * h) - (5 * a);
-            bmr = (document.getElementById('g').value === 'male') ? bmr + 5 : bmr - 161;
-            const tdee = Math.round(bmr * parseFloat(document.getElementById('act').value));
+        // 體重紀錄功能
+        async function saveWeight() {
+            const input = document.getElementById('weight_input');
+            const weightVal = parseFloat(input.value);
             
-            appData.profile = { tdee };
-            localStorage.setItem('ret_profile', JSON.stringify(appData.profile));
-            
-            document.getElementById('tVal').innerText = tdee;
-            document.getElementById('dVal').innerText = tdee - 500;
-            document.getElementById('resBox').classList.remove('hidden');
-            refreshDietUI();
-        }
-
-        function addFood() {
-            const name = document.getElementById('fName').value;
-            const cal = parseInt(document.getElementById('fCal').value);
-            if(!name || isNaN(cal)) return;
+            if (isNaN(weightVal) || weightVal <= 0) {
+                alert("請輸入正確的體重數字喔！🍯");
+                return;
+            }
 
             const today = new Date().toISOString().split('T')[0];
-            if(!appData.logs[today]) appData.logs[today] = { foods: [] };
-            appData.logs[today].foods.push({ name, cal });
-            
-            save();
-            refreshDietUI();
-            document.getElementById('fName').value = '';
-            document.getElementById('fCal').value = '';
-        }
+            const existingIndex = state.weights.findIndex(w => w.date === today);
 
-        function refreshDietUI() {
-            const today = new Date().toISOString().split('T')[0];
-            const list = document.getElementById('foodList');
-            const log = appData.logs[today];
-            list.innerHTML = '';
-            let total = 0;
-
-            if(log && log.foods.length > 0) {
-                log.foods.forEach(f => {
-                    total += f.cal;
-                    const item = document.createElement('div');
-                    item.className = "flex justify-between items-center bg-[#FFF9DE] p-3 border-2 border-black rounded-2xl mb-2 font-black italic";
-                    item.innerHTML = `<span>${f.name}</span><span class="bg-black text-white px-3 py-1 rounded-full text-xs">${f.cal} kcal</span>`;
-                    list.appendChild(item);
-                });
+            if (existingIndex > -1) {
+                state.weights[existingIndex].weight = weightVal;
             } else {
-                list.innerHTML = "今天還沒吃東西唷...";
+                state.weights.push({ date: today, weight: weightVal });
             }
 
-            document.getElementById('totalDisplay').innerText = total;
-            const badge = document.getElementById('statusBadge');
-            if(appData.profile.tdee) {
-                const target = appData.profile.tdee - 500;
-                if(total > appData.profile.tdee) {
-                    badge.innerText = "🚨 爆熱量了！";
-                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#FF499E] text-white rotate-2";
-                } else if (total >= target) {
-                    badge.innerText = "👌 維持中";
-                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#FFD93D] rotate-[-2deg]";
-                } else {
-                    badge.innerText = "💎 完美赤字";
-                    badge.className = "px-4 py-2 rounded-full border-4 border-black font-black bg-[#BAFFB4] rotate-1";
-                }
-            }
-            renderCalendar();
+            state.weights.sort((a, b) => new Date(a.date) - new Date(b.date));
+            localStorage.setItem('fpop_weights', JSON.stringify(state.weights));
+            
+            updateChart();
+            input.value = '';
+            
+            // 顯示 AI 鼓勵與成功訊息
+            await showAiPraise(weightVal);
         }
 
-        async function recordWeight() {
-            const val = parseFloat(document.getElementById('wInput').value);
-            if(isNaN(val)) return alert("請輸入正確體重數字！");
-
-            const today = new Date().toISOString().split('T')[0];
-            const idx = appData.weights.findIndex(x => x.date === today);
+        async function showAiPraise(w) {
+            const toast = document.getElementById('aiToast');
+            const msgEl = document.getElementById('aiMsg');
             
-            if(idx > -1) appData.weights[idx].weight = val;
-            else appData.weights.push({ date: today, weight: val });
+            let message = "紀錄成功！你今天真的太棒了，繼續保持！✨";
             
-            appData.weights.sort((a,b) => new Date(a.date) - new Date(b.date));
-            save();
-            updateChart();
-            document.getElementById('wInput').value = '';
-
-            // AI 
-            const loader = document.getElementById('aiLoader');
-            loader.style.display = 'flex';
             try {
-                const prompt = `使用者體重紀錄為 ${val}kg。請用一句超級可愛、美式復古風、活潑圓滑的語氣鼓勵他。繁體中文，20字內。`;
+                const prompt = `使用者紀錄了體重 ${w}kg。請用一段超級可愛、美式復古圓滑、像1950年代廣告少女的語氣鼓勵他。繁體中文，20字內。`;
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
                 const data = await res.json();
-                const msg = data.candidates?.[0]?.content?.parts?.[0]?.text || "你是最棒的小甜心！加油！";
-                document.getElementById('aiBox').style.display = 'flex';
-                document.getElementById('aiMsg').innerText = msg;
-            } catch(e) {
-                document.getElementById('aiBox').style.display = 'flex';
-                document.getElementById('aiMsg').innerText = "太棒了！紀錄成功！你是閃亮之星！";
-            }
-            loader.style.display = 'none';
+                message = data.candidates?.[0]?.content?.parts?.[0]?.text || message;
+            } catch (e) { console.log("AI Error", e); }
+
+            msgEl.innerText = message;
+            toast.style.display = 'flex';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
         }
 
+        // TDEE 計算
+        function calculateTDEE() {
+            const h = parseFloat(document.getElementById('calc_h').value);
+            const w = parseFloat(document.getElementById('calc_w').value);
+            const a = parseFloat(document.getElementById('calc_a').value);
+            const g = document.getElementById('calc_g').value;
+            const act = parseFloat(document.getElementById('calc_act').value);
+
+            if(!h || !w || !a) return alert("要填完數據才能計算喔！🍭");
+
+            let bmr = (10 * w) + (6.25 * h) - (5 * a);
+            bmr = (g === 'male') ? bmr + 5 : bmr - 161;
+            const tdee = Math.round(bmr * act);
+
+            state.profile = { tdee };
+            localStorage.setItem('fpop_profile', JSON.stringify(state.profile));
+            
+            showTDEEResults(tdee);
+            updateDietUI();
+        }
+
+        function showTDEEResults(tdee) {
+            document.getElementById('val_tdee').innerText = tdee;
+            document.getElementById('val_deficit').innerText = tdee - 500;
+            document.getElementById('tdee_res').classList.remove('hidden');
+        }
+
+        // 食物紀錄
+        function addFood() {
+            const name = document.getElementById('food_name').value;
+            const cal = parseInt(document.getElementById('food_cal').value);
+            if(!name || isNaN(cal)) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            if(!state.logs[today]) state.logs[today] = { foods: [] };
+            state.logs[today].foods.push({ name, cal });
+
+            localStorage.setItem('fpop_logs', JSON.stringify(state.logs));
+            updateDietUI();
+            document.getElementById('food_name').value = '';
+            document.getElementById('food_cal').value = '';
+        }
+
+        function updateDietUI() {
+            const today = new Date().toISOString().split('T')[0];
+            const list = document.getElementById('food_list');
+            const log = state.logs[today];
+            list.innerHTML = '';
+            let total = 0;
+
+            if(log && log.foods.length > 0) {
+                log.foods.forEach(f => {
+                    total += f.cal;
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-pink-50 p-4 border-2 border-black rounded-2xl font-bold shadow-[4px_4px_0px_black]";
+                    div.innerHTML = `<span>${f.name}</span><span class="bg-black text-white px-3 py-1 rounded-full text-xs">${f.cal} kcal</span>`;
+                    list.appendChild(div);
+                });
+            } else {
+                list.innerHTML = `<p class="text-center text-gray-400 italic">今天還沒紀錄美食喔！</p>`;
+            }
+
+            document.getElementById('total_cal').innerText = total;
+            const tag = document.getElementById('status_tag');
+            if(state.profile.tdee) {
+                const target = state.profile.tdee - 500;
+                if(total > state.profile.tdee) {
+                    tag.innerText = "🚨 太多囉！";
+                    tag.className = "px-6 py-2 rounded-full border-4 border-black font-black bg-[#FF499E] text-white rotate-2";
+                } else if (total >= target) {
+                    tag.innerText = "👌 維持中";
+                    tag.className = "px-6 py-2 rounded-full border-4 border-black font-black bg-[#FFD93D] rotate-[-2deg]";
+                } else {
+                    tag.innerText = "💎 完美燃燒";
+                    tag.className = "px-6 py-2 rounded-full border-4 border-black font-black bg-[#BAFFB4] rotate-1";
+                }
+            }
+            renderCalendar();
+        }
+
+        // 圖表邏輯
         function initChart() {
-            const ctx = document.getElementById('wChart').getContext('2d');
-            myChart = new Chart(ctx, {
+            const ctx = document.getElementById('weight_chart').getContext('2d');
+            chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: appData.weights.map(w => w.date),
+                    labels: state.weights.map(w => w.date),
                     datasets: [{
-                        label: '體重',
-                        data: appData.weights.map(w => w.weight),
+                        label: '我的體重',
+                        data: state.weights.map(w => w.weight),
                         borderColor: '#222',
-                        borderWidth: 6,
-                        pointRadius: 10,
+                        borderWidth: 8,
+                        pointRadius: 12,
                         pointBackgroundColor: (ctx) => {
                             const i = ctx.dataIndex;
-                            if(i === 0) return '#7971EA';
-                            const start = appData.weights[0].weight;
-                            const cur = appData.weights[i].weight;
-                            const prev = appData.weights[i-1] ? appData.weights[i-1].weight : start;
-                            if(start - cur >= 2 && Math.floor((start-cur)/2) > Math.floor((start-prev)/2)) return '#FFD93D';
+                            if (i === 0 || !state.weights[0]) return '#7971EA';
+                            const initial = state.weights[0].weight;
+                            const current = state.weights[i].weight;
+                            const prev = state.weights[i-1] ? state.weights[i-1].weight : initial;
+                            // 星星判定：每瘦 2kg
+                            if(initial - current >= 2 && Math.floor((initial-current)/2) > Math.floor((initial-prev)/2)) return '#FFD93D';
                             return '#FF499E';
                         },
                         pointStyle: (ctx) => {
                             const i = ctx.dataIndex;
-                            if(i === 0) return 'circle';
-                            const start = appData.weights[0].weight;
-                            const cur = appData.weights[i].weight;
-                            const prev = appData.weights[i-1] ? appData.weights[i-1].weight : start;
-                            if(start - cur >= 2 && Math.floor((start-cur)/2) > Math.floor((start-prev)/2)) return 'star';
+                            if (i === 0 || !state.weights[0]) return 'circle';
+                            const initial = state.weights[0].weight;
+                            const current = state.weights[i].weight;
+                            const prev = state.weights[i-1] ? state.weights[i-1].weight : initial;
+                            if(initial - current >= 2 && Math.floor((initial-current)/2) > Math.floor((initial-prev)/2)) return 'star';
                             return 'circle';
                         },
-                        tension: 0.4,
+                        tension: 0.3,
                         fill: false
                     }]
                 },
@@ -366,52 +402,49 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { grid: { display: false }, border: { width: 4, color: '#000' } },
-                        x: { grid: { display: false }, border: { width: 4, color: '#000' } }
+                        x: { grid: { display: false }, border: { color: '#000', width: 4 } },
+                        y: { grid: { color: '#EEE' }, border: { color: '#000', width: 4 } }
                     }
                 }
             });
         }
 
         function updateChart() {
-            myChart.data.labels = appData.weights.map(w => w.date);
-            myChart.data.datasets[0].data = appData.weights.map(w => w.weight);
-            myChart.update();
+            if(!chartInstance) return;
+            chartInstance.data.labels = state.weights.map(w => w.date);
+            chartInstance.data.datasets[0].data = state.weights.map(w => w.weight);
+            chartInstance.update();
         }
 
+        // 日曆邏輯
         function renderCalendar() {
-            const grid = document.getElementById('calGrid');
+            const grid = document.getElementById('calendar');
             grid.innerHTML = '';
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+            const startDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
 
-            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+            for(let i=0; i<startDay; i++) grid.appendChild(document.createElement('div'));
 
             for(let i=1; i<=daysInMonth; i++) {
                 const day = document.createElement('div');
-                const dStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(i).padStart(2,'0')}`;
-                const hasData = appData.logs[dStr];
+                const dStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const hasData = state.logs[dStr];
                 day.innerText = i;
-                day.className = `h-12 flex items-center justify-center rounded-2xl border-2 border-black font-black cursor-pointer shadow-[4px_4px_0px_black] ${hasData ? 'bg-[#7971EA] text-white' : 'bg-white'}`;
+                day.className = `h-14 flex items-center justify-center rounded-3xl border-4 border-black font-black cursor-pointer shadow-[6px_6px_0px_black] transition-all hover:scale-110 ${hasData ? 'bg-[#7971EA] text-white' : 'bg-white'}`;
                 day.onclick = () => {
-                    const info = document.getElementById('dayInfo');
-                    document.getElementById('infoDate').innerText = dStr;
+                    const detail = document.getElementById('day_detail');
+                    document.getElementById('detail_date').innerText = dStr;
                     if(hasData) {
                         const total = hasData.foods.reduce((a,b)=>a+b.cal, 0);
-                        document.getElementById('infoContent').innerHTML = hasData.foods.map(f => `🍬 ${f.name} (${f.cal}kcal)`).join('<br>') + `<br><br>總計: ${total} kcal`;
+                        document.getElementById('detail_info').innerHTML = hasData.foods.map(f => `🎁 ${f.name} (${f.cal}kcal)`).join('<br>') + `<br><br>---<br>當日總計: ${total} kcal`;
                     } else {
-                        document.getElementById('infoContent').innerText = "這天沒有紀錄唷！";
+                        document.getElementById('detail_info').innerText = "這天胃口很好，但是忘了紀錄 😜";
                     }
-                    info.classList.remove('hidden');
+                    detail.classList.remove('hidden');
                 };
                 grid.appendChild(day);
             }
-        }
-
-        function save() {
-            localStorage.setItem('ret_logs', JSON.stringify(appData.logs));
-            localStorage.setItem('ret_weights', JSON.stringify(appData.weights));
         }
     </script>
 </body>
